@@ -63,10 +63,11 @@ class invoice_generator {
         $pdf->SetSubject($this->string_manager->get_string('invoice_for_payment', 'local_invoicepdf', null, $this->user->lang));
         $pdf->SetKeywords($this->string_manager->get_string('invoice_keywords', 'local_invoicepdf', null, $this->user->lang));
 
-        $pdf->SetHeaderData($this->get_logo_path(), PDF_HEADER_LOGO_WIDTH, $this->config->company_name, $this->config->company_address);
+        // Apply custom design settings
+        $pdf->SetHeaderData($this->get_logo_path(), PDF_HEADER_LOGO_WIDTH, $this->config->company_name, $this->config->company_address, hex2rgb($this->config->header_color));
 
-        $pdf->setHeaderFont(Array(PDF_FONT_NAME_MAIN, '', PDF_FONT_SIZE_MAIN));
-        $pdf->setFooterFont(Array(PDF_FONT_NAME_DATA, '', PDF_FONT_SIZE_DATA));
+        $pdf->setHeaderFont(Array($this->config->font_family, '', PDF_FONT_SIZE_MAIN));
+        $pdf->setFooterFont(Array($this->config->font_family, '', PDF_FONT_SIZE_DATA));
 
         $pdf->SetDefaultMonospacedFont(PDF_FONT_MONOSPACED);
 
@@ -78,6 +79,9 @@ class invoice_generator {
 
         $pdf->setImageScale(PDF_IMAGE_SCALE_RATIO);
 
+        // Set font
+        $pdf->SetFont($this->config->font_family, '', $this->config->font_size);
+
         $pdf->AddPage();
 
         $html = $this->get_invoice_html($invoice_number);
@@ -85,6 +89,21 @@ class invoice_generator {
         $pdf->writeHTML($html, true, false, true, false, '');
 
         return $pdf->Output('', 'S');
+    }
+
+    // Helper function to convert hex color to RGB
+    private function hex2rgb($hex) {
+        $hex = str_replace("#", "", $hex);
+        if(strlen($hex) == 3) {
+            $r = hexdec(substr($hex,0,1).substr($hex,0,1));
+            $g = hexdec(substr($hex,1,1).substr($hex,1,1));
+            $b = hexdec(substr($hex,2,1).substr($hex,2,1));
+        } else {
+            $r = hexdec(substr($hex,0,2));
+            $g = hexdec(substr($hex,2,2));
+            $b = hexdec(substr($hex,4,2));
+        }
+        return array($r, $g, $b);
     }
 
     private function get_invoice_html($invoice_number) {

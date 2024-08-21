@@ -7,10 +7,24 @@ class observer {
     public static function payment_completed(\core\event\base $event) {
         global $DB;
 
-        $transaction = $event->get_record_snapshot('payments', $event->objectid);
-        $user = $DB->get_record('user', ['id' => $transaction->userid]);
+        $eventdata = $event->get_data();
+        $paymentid = $eventdata['objectid'];
+        $payment = $DB->get_record('payments', ['id' => $paymentid]);
 
-        $invoice_generator = new invoice_generator($transaction, $user);
+        if (!$payment) {
+            \core\notification::error(get_string('payment_not_found', 'local_invoicepdf'));
+            return;
+        }
+
+        $user = $DB->get_record('user', ['id' => $payment->userid]);
+
+        // Check if this payment gateway is enabled for invoice generation
+        $enabled_gateways = get_config('local_invoicepdf', 'enabled_gateways');
+        if ($enabled_gateways !== '0' && !in_array($payment->gateway, explode(',', $enabled_gateways))) {
+            return; // This gateway is not enabled for invoice generation
+        }
+
+        $invoice_generator = new invoice_generator($payment, $user);
         $pdf_content = $invoice_generator->generate_pdf();
 
         $invoice_number = invoice_number_manager::get_next_invoice_number();
@@ -19,8 +33,8 @@ class observer {
         $invoice_id = invoice_manager::store_invoice(
             $user->id,
             $invoice_number,
-            $transaction->amount,
-            $transaction->currency,
+            $payment->amount,
+            $payment->currency,
             $pdf_content
         );
 

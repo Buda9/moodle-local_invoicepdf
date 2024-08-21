@@ -3,6 +3,7 @@ $string['pluginname'] = 'Invoice PDF Generator';
 $string['invoicepdf:manage'] = 'Manage Invoice PDF settings';
 
 // Settings strings
+$string['invoicearchive'] = 'Invoice Archive';
 $string['setting_company_name'] = 'Company Name';
 $string['setting_company_name_desc'] = 'Your company name to be displayed on the invoice';
 $string['setting_company_address'] = 'Company Address';
@@ -86,3 +87,21 @@ $string['delete_invoice'] = 'Delete invoice';
 $string['delete_invoice_confirm'] = 'Are you sure you want to delete this invoice?';
 $string['invoice_deleted'] = 'Invoice has been deleted successfully';
 $string['invoice_delete_failed'] = 'Failed to delete the invoice';
+
+// Custom design
+$string['setting_invoice_design'] = 'Invoice Design';
+$string['setting_invoice_design_desc'] = 'Customize the appearance of your invoices';
+$string['setting_header_color'] = 'Header Color';
+$string['setting_header_color_desc'] = 'Choose the color for the invoice header';
+$string['setting_font_family'] = 'Font Family';
+$string['setting_font_family_desc'] = 'Select the font family for the invoice';
+$string['setting_font_size'] = 'Font Size';
+$string['setting_font_size_desc'] = 'Set the base font size for the invoice (in points)';
+$string['setting_invoice_content'] = 'Invoice Content';
+$string['setting_invoice_content_desc'] = 'Customize the content of your invoices';
+
+// Payment Gateways
+$string['all_gateways'] = 'All payment gateways';
+$string['setting_enabled_gateways'] = 'Enabled payment gateways';
+$string['setting_enabled_gateways_desc'] = 'Select which payment gateways should generate invoices';
+$string['payment_not_found'] = 'Payment record not found';
