@@ -19,6 +19,7 @@ $string['setting_show_payment_method'] = 'Show Payment Method';
 $string['setting_show_payment_method_desc'] = 'Include the payment method on the invoice';
 $string['setting_invoice_footer'] = 'Invoice Footer';
 $string['setting_invoice_footer_desc'] = 'Text to appear in the footer of each invoice';
+$string['default_invoice_footer'] = 'Copyright by Company';
 $string['setting_available_languages'] = 'Available Languages';
 $string['setting_available_languages_desc'] = 'Select languages in which invoices can be generated';
 $string['setting_invoice_template'] = 'Invoice Template';
