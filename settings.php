@@ -2,8 +2,11 @@
 defined('MOODLE_INTERNAL') || die;
 
 if ($hassiteconfig) {
-    $settings = new admin_settingpage('local_invoicepdf', get_string('pluginname', 'local_invoicepdf'));
-    $ADMIN->add('localplugins', $settings);
+    $ADMIN->add('localplugins', new admin_category('local_invoicepdf', get_string('pluginname', 'local_invoicepdf')));
+
+    // Plugin settings page
+    $settings = new admin_settingpage('local_invoicepdf_settings', get_string('settings', 'local_invoicepdf'));
+    $ADMIN->add('local_invoicepdf', $settings);
 
     // Get all available payment gateways
     $gateways = \core_component::get_plugin_list('paygw');
@@ -93,6 +96,15 @@ if ($hassiteconfig) {
         get_string('setting_invoice_footer_desc', 'local_invoicepdf'),
         get_string('default_invoice_footer', 'local_invoicepdf'), PARAM_RAW));
 
+    // Custom CSS
+    $settings->add(new admin_setting_configtextarea(
+        'local_invoicepdf/custom_css',
+        get_string('custom_css', 'local_invoicepdf'),
+        get_string('custom_css_desc', 'local_invoicepdf'),
+        '',
+        PARAM_RAW
+    ));
+
     // Multilanguage support
     $languages = get_string_manager()->get_list_of_translations();
     $settings->add(new admin_setting_configmultiselect('local_invoicepdf/available_languages',
@@ -105,4 +117,16 @@ if ($hassiteconfig) {
         get_string('setting_invoices_per_page', 'local_invoicepdf'),
         get_string('setting_invoices_per_page_desc', 'local_invoicepdf'),
         '10', PARAM_INT));
+
+    // admin/index.php
+    $ADMIN->add('local_invoicepdf', new admin_externalpage('local_invoicepdf_admin',
+        get_string('invoiceadmin', 'local_invoicepdf'),
+        new moodle_url('/local/invoicepdf/admin/index.php')
+    ));
+
+    // archive/archive.php
+    $ADMIN->add('local_invoicepdf', new admin_externalpage('local_invoicepdf_archive',
+        get_string('invoicearchive', 'local_invoicepdf'),
+        new moodle_url('/local/invoicepdf/archive/archive.php')
+    ));
 }

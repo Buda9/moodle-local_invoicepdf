@@ -75,6 +75,13 @@ class invoice_manager {
 
     public static function store_invoice($userid, $invoice_number, $amount, $currency, $pdf_content) {
         global $DB;
+
+        // Check if an invoice with this number already exists
+        if ($DB->record_exists('local_invoicepdf_invoices', ['invoice_number' => $invoice_number])) {
+            mtrace("Invoice PDF: Invoice with number $invoice_number already exists");
+            return false;
+        }
+
         $invoice = new \stdClass();
         $invoice->userid = $userid;
         $invoice->invoice_number = $invoice_number;
@@ -83,6 +90,32 @@ class invoice_manager {
         $invoice->pdf_content = $pdf_content;
         $invoice->timecreated = time();
 
-        return $DB->insert_record('local_invoicepdf_invoices', $invoice);
+        try {
+            return $DB->insert_record('local_invoicepdf_invoices', $invoice);
+        } catch (\dml_exception $e) {
+            mtrace("Invoice PDF: Failed to store invoice - " . $e->getMessage());
+            return false;
+        }
+    }
+
+    public static function export_invoices($startdate, $enddate, $format = 'csv') {
+        global $DB;
+
+        $invoices = $DB->get_records_select('local_invoicepdf_invoices', 
+            'timecreated BETWEEN :startdate AND :enddate',
+            ['startdate' => $startdate, 'enddate' => $enddate],
+            'timecreated ASC'
+        );
+
+        if ($format === 'csv') {
+            $csv = "Invoice Number,Date,User,Amount,Currency\n";
+            foreach ($invoices as $invoice) {
+                $user = \core_user::get_user($invoice->userid);
+                $csv .= "{$invoice->invoice_number}," . date('Y-m-d', $invoice->timecreated) . "," .
+                        fullname($user) . ",{$invoice->amount},{$invoice->currency}\n";
+            }
+            return $csv;
+        }
+        return false;
     }
 }

@@ -1,32 +1,46 @@
 <?php
+
 namespace local_invoicepdf;
 
 defined('MOODLE_INTERNAL') || die();
 
 class observer {
-    public static function payment_completed(\core\event\base $event) {
-        global $DB;
+    public static function payment_completed(\core\event\payment_completed $event) {
+        global $DB, $CFG;
+        require_once($CFG->dirroot . '/local/invoicepdf/lib.php');
 
-        $eventdata = $event->get_data();
-        $paymentid = $eventdata['objectid'];
-        $payment = $DB->get_record('payments', ['id' => $paymentid]);
+        mtrace("Invoice PDF: Payment completed event triggered for payment ID: " . $event->objectid);
 
+        // Fetch the payment record
+        $payment = $DB->get_record('payments', ['id' => $event->objectid]);
         if (!$payment) {
-            \core\notification::error(get_string('payment_not_found', 'local_invoicepdf'));
+            mtrace("Invoice PDF: Payment record not found for ID: " . $event->objectid);
             return;
         }
-
-        $user = $DB->get_record('user', ['id' => $payment->userid]);
 
         // Check if this payment gateway is enabled for invoice generation
         $enabled_gateways = get_config('local_invoicepdf', 'enabled_gateways');
         if ($enabled_gateways !== '0' && !in_array($payment->gateway, explode(',', $enabled_gateways))) {
-            return; // This gateway is not enabled for invoice generation
+            mtrace("Invoice PDF: Gateway {$payment->gateway} not enabled for invoice generation");
+            return;
         }
 
+        // Fetch the user record
+        $user = $DB->get_record('user', ['id' => $payment->userid]);
+        if (!$user) {
+            mtrace("Invoice PDF: User not found for ID: " . $payment->userid);
+            return;
+        }
+
+        // Generate the invoice
         $invoice_generator = new invoice_generator($payment, $user);
         $pdf_content = $invoice_generator->generate_pdf();
+        if (!$pdf_content) {
+            mtrace("Invoice PDF: Failed to generate PDF for payment ID: " . $event->objectid);
+            return;
+        }
 
+        // Get the next invoice number
         $invoice_number = invoice_number_manager::get_next_invoice_number();
 
         // Store the invoice
@@ -38,15 +52,17 @@ class observer {
             $pdf_content
         );
 
-        if ($invoice_id) {
-            // Send email with attached PDF
-            $result = $invoice_generator->send_invoice_email($pdf_content, $invoice_number);
+        if (!$invoice_id) {
+            mtrace("Invoice PDF: Failed to store invoice for payment ID: " . $event->objectid);
+            return;
+        }
 
-            if (!$result) {
-                \core\notification::error(get_string('invoice_email_failed', 'local_invoicepdf'));
-            }
+        // Send the invoice email
+        $result = $invoice_generator->send_invoice_email($pdf_content, $invoice_number);
+        if (!$result) {
+            mtrace("Invoice PDF: Failed to send invoice email for payment ID: " . $event->objectid);
         } else {
-            \core\notification::error(get_string('invoice_creation_failed', 'local_invoicepdf'));
+            mtrace("Invoice PDF: Successfully processed invoice for payment ID: " . $event->objectid);
         }
     }
 }

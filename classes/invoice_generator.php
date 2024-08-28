@@ -161,4 +161,15 @@ class invoice_generator {
 
         return '';
     }
+
+    private function apply_custom_css($html) {
+        $custom_css = $this->config->custom_css;
+        return '<style>' . $custom_css . '</style>' . $html;
+    }
+
+    private function get_invoice_language() {
+        $user_lang = $this->user->lang;
+        $available_langs = explode(',', $this->config->available_languages);
+        return in_array($user_lang, $available_langs) ? $user_lang : reset($available_langs);
+    }
 }

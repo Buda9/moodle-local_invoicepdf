@@ -3,6 +3,9 @@ $string['pluginname'] = 'Invoice PDF Generator';
 $string['invoicepdf:manage'] = 'Manage Invoice PDF settings';
 
 // Settings strings
+$string['settings'] = 'Settings';
+$string['invoicearchive'] = 'Invoice Archive';
+$string['invoiceadmin'] = 'Invoice Admin';
 $string['invoicearchive'] = 'Invoice Archive';
 $string['setting_company_name'] = 'Company Name';
 $string['setting_company_name_desc'] = 'Your company name to be displayed on the invoice';
@@ -25,6 +28,17 @@ $string['setting_available_languages'] = 'Available Languages';
 $string['setting_available_languages_desc'] = 'Select languages in which invoices can be generated';
 $string['setting_invoice_template'] = 'Invoice Template';
 $string['setting_invoice_template_desc'] = 'HTML template for the invoice. Use placeholders like {{company_name}}, {{invoice_number}}, etc.';
+
+// Admin page
+$string['invoiceadmin'] = 'Invoice Admin';
+$string['summary'] = 'Summary';
+$string['totalinvoices'] = 'Total Invoices';
+$string['totalamount'] = 'Total Amount';
+$string['invoicechart'] = 'Invoice Chart';
+$string['exportinvoices'] = 'Export Invoices';
+$string['exportcsv'] = 'Export CSV';
+$string['recentinvoices'] = 'Recent invoices';
+$string['invoicenumber'] = 'Invoice Number';
 
 // Invoice strings
 $string['invoice'] = 'Invoice';
@@ -99,6 +113,8 @@ $string['setting_font_size'] = 'Font Size';
 $string['setting_font_size_desc'] = 'Set the base font size for the invoice (in points)';
 $string['setting_invoice_content'] = 'Invoice Content';
 $string['setting_invoice_content_desc'] = 'Customize the content of your invoices';
+$string['custom_css'] = 'Custom CSS';
+$string['custom_css_desc'] = 'Enter custom CSS without style tags';
 
 // Payment Gateways
 $string['all_gateways'] = 'All payment gateways';

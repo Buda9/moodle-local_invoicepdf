@@ -2,7 +2,7 @@
 require_once('../../../config.php');
 require_once($CFG->libdir.'/adminlib.php');
 
-admin_externalpage_setup('invoicepdfarchive');
+admin_externalpage_setup('local_invoicepdf_archive');
 
 $PAGE->set_url(new moodle_url('/local/invoicepdf/admin/archive.php'));
 $PAGE->set_title(get_string('admin_invoice_archive', 'local_invoicepdf'));
