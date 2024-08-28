@@ -10,15 +10,18 @@ if ($hassiteconfig) {
 
     // Get all available payment gateways
     $gateways = \core_component::get_plugin_list('paygw');
-    $gateway_options = [0 => get_string('all_gateways', 'local_invoicepdf')];
+    $gateway_options = [];
     foreach ($gateways as $gateway => $path) {
         $gateway_options[$gateway] = get_string('pluginname', 'paygw_'.$gateway);
     }
 
+    // Choose from available payment gateways, default to none
     $settings->add(new admin_setting_configmultiselect('local_invoicepdf/enabled_gateways',
         get_string('setting_enabled_gateways', 'local_invoicepdf'),
         get_string('setting_enabled_gateways_desc', 'local_invoicepdf'),
-        [0], $gateway_options));
+        [],
+        $gateway_options
+    ));
 
     // Existing settings
     $settings->add(new admin_setting_configtext('local_invoicepdf/company_name',

@@ -119,5 +119,5 @@ $string['custom_css_desc'] = 'Enter custom CSS without style tags';
 // Payment Gateways
 $string['all_gateways'] = 'All payment gateways';
 $string['setting_enabled_gateways'] = 'Enabled payment gateways';
-$string['setting_enabled_gateways_desc'] = 'Select which payment gateways should generate invoices';
+$string['setting_enabled_gateways_desc'] = 'Select which payment gateways should generate invoices. If none are selected, no invoices will be generated.';
 $string['payment_not_found'] = 'Payment record not found';

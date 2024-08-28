@@ -20,9 +20,11 @@ class observer {
 
         // Check if this payment gateway is enabled for invoice generation
         $enabled_gateways = get_config('local_invoicepdf', 'enabled_gateways');
-        if ($enabled_gateways !== '0' && !in_array($payment->gateway, explode(',', $enabled_gateways))) {
-            mtrace("Invoice PDF: Gateway {$payment->gateway} not enabled for invoice generation");
-            return;
+        $enabled_gateways = $enabled_gateways ? explode(',', $enabled_gateways) : [];
+
+        if (empty($enabled_gateways) || !in_array($payment->gateway, $enabled_gateways)) {
+            // No gateway has been choosen or current gateway is not selected
+            return; // Don't generate invoice
         }
 
         // Fetch the user record
