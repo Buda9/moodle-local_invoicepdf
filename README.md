@@ -1,4 +1,6 @@
-# Moodle Invoice PDF Generator Plugin
+# Moodle Invoice PDF Generator Plugin (WiP)
+
+Notice: Still Work in Progress. Invoices are not being generated.
 
 ## Overview
 The Moodle Invoice PDF Generator is a comprehensive plugin designed to automate the process of generating, sending, and managing invoices within the Moodle learning management system. This plugin seamlessly integrates with Moodle's payment system to create professional, customizable invoices for all financial transactions.
