@@ -1,4 +1,28 @@
 <?php
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+/**
+ * Language strings for the Invoice PDF local plugin.
+ *
+ * @package    local_invoicepdf
+ * @copyright  2024 Davor Budimir <davor@vokabula.com>
+ * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+// General strings
 $string['pluginname'] = 'Invoice PDF Generator';
 $string['invoicepdf:manage'] = 'Manage Invoice PDF settings';
 
@@ -6,7 +30,6 @@ $string['invoicepdf:manage'] = 'Manage Invoice PDF settings';
 $string['settings'] = 'Settings';
 $string['invoicearchive'] = 'Invoice Archive';
 $string['invoiceadmin'] = 'Invoice Admin';
-$string['invoicearchive'] = 'Invoice Archive';
 $string['setting_company_name'] = 'Company Name';
 $string['setting_company_name_desc'] = 'Your company name to be displayed on the invoice';
 $string['setting_company_address'] = 'Company Address';
@@ -28,9 +51,10 @@ $string['setting_available_languages'] = 'Available Languages';
 $string['setting_available_languages_desc'] = 'Select languages in which invoices can be generated';
 $string['setting_invoice_template'] = 'Invoice Template';
 $string['setting_invoice_template_desc'] = 'HTML template for the invoice. Use placeholders like {{company_name}}, {{invoice_number}}, etc.';
+$string['setting_invoices_per_page'] = 'Invoices per page';
+$string['setting_invoices_per_page_desc'] = 'Number of invoices to display per page in the invoice list';
 
-// Admin page
-$string['invoiceadmin'] = 'Invoice Admin';
+// Admin page strings
 $string['summary'] = 'Summary';
 $string['totalinvoices'] = 'Total Invoices';
 $string['totalamount'] = 'Total Amount';
@@ -57,6 +81,7 @@ $string['invoice_footer'] = 'Thank you for your business!';
 // Email strings
 $string['invoice_email_subject'] = 'Your invoice for recent payment';
 $string['invoice_email_body'] = 'Please find attached your invoice for the recent payment.';
+$string['invoice_email_failed'] = 'Failed to send invoice email. Please contact the system administrator.';
 
 // Default invoice template
 $string['default_invoice_template'] = '
@@ -82,11 +107,9 @@ $string['default_invoice_template'] = '
 <footer>{{invoice_footer}}</footer>
 ';
 
-$string['invoice_email_failed'] = 'Failed to send invoice email. Please contact the system administrator.';
-
+// User interface strings
 $string['user_invoice_archive'] = 'My Invoices';
 $string['admin_invoice_archive'] = 'All Invoices';
-$string['invoice_number'] = 'Invoice Number';
 $string['actions'] = 'Actions';
 $string['download'] = 'Download';
 $string['resend'] = 'Resend';
@@ -94,15 +117,12 @@ $string['user'] = 'User';
 $string['invalidinvoice'] = 'Invalid invoice';
 $string['invoice_resent'] = 'Invoice has been resent successfully';
 $string['invoice_resend_failed'] = 'Failed to resend invoice';
-
-$string['setting_invoices_per_page'] = 'Invoices per page';
-$string['setting_invoices_per_page_desc'] = 'Number of invoices to display per page in the invoice list';
 $string['delete_invoice'] = 'Delete invoice';
 $string['delete_invoice_confirm'] = 'Are you sure you want to delete this invoice?';
 $string['invoice_deleted'] = 'Invoice has been deleted successfully';
 $string['invoice_delete_failed'] = 'Failed to delete the invoice';
 
-// Custom design
+// Custom design strings
 $string['setting_invoice_design'] = 'Invoice Design';
 $string['setting_invoice_design_desc'] = 'Customize the appearance of your invoices';
 $string['setting_header_color'] = 'Header Color';
@@ -116,7 +136,7 @@ $string['setting_invoice_content_desc'] = 'Customize the content of your invoice
 $string['custom_css'] = 'Custom CSS';
 $string['custom_css_desc'] = 'Enter custom CSS without style tags';
 
-// Payment Gateways
+// Payment Gateway strings
 $string['all_gateways'] = 'All payment gateways';
 $string['setting_enabled_gateways'] = 'Enabled payment gateways';
 $string['setting_enabled_gateways_desc'] = 'Select which payment gateways should generate invoices. If none are selected, no invoices will be generated.';

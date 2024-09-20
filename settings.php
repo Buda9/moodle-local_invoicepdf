@@ -1,5 +1,29 @@
 <?php
-defined('MOODLE_INTERNAL') || die;
+// This file is part of Moodle - http://moodle.org/
+//
+// Moodle is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// (at your option) any later version.
+//
+// Moodle is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+
+/**
+ * Plugin administration pages are defined here.
+ *
+ * @package     local_invoicepdf
+ * @category    admin
+ * @copyright   2023 Your Name <your@email.com>
+ * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
+ */
+
+defined('MOODLE_INTERNAL') || die();
 
 if ($hassiteconfig) {
     $ADMIN->add('localplugins', new admin_category('local_invoicepdf', get_string('pluginname', 'local_invoicepdf')));
@@ -10,10 +34,9 @@ if ($hassiteconfig) {
 
     // Get all available payment gateways
     $gateways = \core_component::get_plugin_list('paygw');
-    $gateway_options = [];
-    foreach ($gateways as $gateway => $path) {
-        $gateway_options[$gateway] = get_string('pluginname', 'paygw_'.$gateway);
-    }
+    $gateway_options = array_map(function($gateway) {
+        return get_string('pluginname', 'paygw_' . $gateway);
+    }, array_keys($gateways));
 
     // Choose from available payment gateways, default to none
     $settings->add(new admin_setting_configmultiselect('local_invoicepdf/enabled_gateways',
@@ -23,7 +46,11 @@ if ($hassiteconfig) {
         $gateway_options
     ));
 
-    // Existing settings
+    // Company Information Settings
+    $settings->add(new admin_setting_heading('companyinfo',
+        get_string('setting_company_info', 'local_invoicepdf'),
+        get_string('setting_company_info_desc', 'local_invoicepdf')));
+
     $settings->add(new admin_setting_configtext('local_invoicepdf/company_name',
         get_string('setting_company_name', 'local_invoicepdf'),
         get_string('setting_company_name_desc', 'local_invoicepdf'),
@@ -121,13 +148,12 @@ if ($hassiteconfig) {
         get_string('setting_invoices_per_page_desc', 'local_invoicepdf'),
         '10', PARAM_INT));
 
-    // admin/index.php
+    // Add external admin pages
     $ADMIN->add('local_invoicepdf', new admin_externalpage('local_invoicepdf_admin',
         get_string('invoiceadmin', 'local_invoicepdf'),
         new moodle_url('/local/invoicepdf/admin/index.php')
     ));
 
-    // archive/archive.php
     $ADMIN->add('local_invoicepdf', new admin_externalpage('local_invoicepdf_archive',
         get_string('invoicearchive', 'local_invoicepdf'),
         new moodle_url('/local/invoicepdf/archive/archive.php')
