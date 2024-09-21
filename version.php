@@ -25,7 +25,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_invoicepdf';
-$plugin->version = 2024082103;
+$plugin->version = 2024082104;
 $plugin->requires = 2023100900; // Moodle 4.4 and up
 $plugin->maturity = MATURITY_BETA;
-$plugin->release = 'v0.5';
+$plugin->release = 'v0.6';

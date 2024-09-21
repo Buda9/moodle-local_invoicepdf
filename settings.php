@@ -19,7 +19,7 @@
  *
  * @package     local_invoicepdf
  * @category    admin
- * @copyright   2023 Your Name <your@email.com>
+ * @copyright   2024 Davor Budimir <davor@vokabula.com>
  * @license     http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 

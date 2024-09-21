@@ -18,7 +18,7 @@
  * Invoice PDF plugin upgrade script.
  *
  * @package    local_invoicepdf
- * @copyright  2023 Your Name <your@email.com>
+ * @copyright  2024 Davor Budimir <davor@vokabula.com>
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -42,6 +42,15 @@ function xmldb_local_invoicepdf_upgrade(int $oldversion): bool {
 
         // Update the savepoint
         upgrade_plugin_savepoint(true, 2024082001, 'local', 'invoicepdf');
+    }
+
+    if ($oldversion < 2024082104) {
+        // Update the default settings for new features
+        set_config('enabled_gateways', '', 'local_invoicepdf'); // Reset enabled gateways
+        set_config('invoices_per_page', '10', 'local_invoicepdf'); // Set default pagination
+
+        // Update the savepoint
+        upgrade_plugin_savepoint(true, 2024082104, 'local', 'invoicepdf');
     }
 
     return true;
