@@ -1,0 +1,176 @@
+{{!
+    This file is part of Moodle - http://moodle.org/
+
+    Moodle is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    Moodle is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
+}}
+{{!
+    @template local_invoicepdf/invoice
+
+    Template for generating PDF invoices.
+
+    Classes required for JS:
+    * none
+
+    Data attributes required for JS:
+    * none
+
+    Context variables required for this template:
+    * company_name string Company name
+    * company_address string Company address
+    * invoice_number string Invoice number
+    * invoice_date string Invoice date
+    * customer_name string Customer name
+    * item_description string Item description
+    * item_amount string Item amount with currency
+    * total_amount string Total amount with currency
+    * payment_method string Payment method (optional)
+    * invoice_footer string Invoice footer text
+}}
+<div class="invoice-container">
+    <div class="invoice-header">
+        <div class="company-info">
+            <h1>{{company_name}}</h1>
+            <p>{{{company_address}}}</p>
+        </div>
+        <div class="invoice-details">
+            <h2>{{#str}}invoice, local_invoicepdf{{/str}} #{{invoice_number}}</h2>
+            <p class="date">{{#str}}date, local_invoicepdf{{/str}}: {{invoice_date}}</p>
+        </div>
+    </div>
+
+    <div class="customer-info">
+        <h3>{{#str}}to, local_invoicepdf{{/str}}:</h3>
+        <p>{{customer_name}}</p>
+    </div>
+
+    <div class="invoice-items">
+        <table>
+            <thead>
+                <tr>
+                    <th>{{#str}}description, local_invoicepdf{{/str}}</th>
+                    <th>{{#str}}amount, local_invoicepdf{{/str}}</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>{{item_description}}</td>
+                    <td class="amount">{{item_amount}}</td>
+                </tr>
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td><strong>{{#str}}total, local_invoicepdf{{/str}}</strong></td>
+                    <td class="amount"><strong>{{total_amount}}</strong></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    {{#show_payment_method}}
+    <div class="payment-info">
+        <p>{{#str}}payment_method, local_invoicepdf{{/str}}: {{payment_method}}</p>
+    </div>
+    {{/show_payment_method}}
+
+    <div class="invoice-footer">
+        <p>{{{invoice_footer}}}</p>
+    </div>
+</div>
+
+<style>
+.invoice-container {
+    font-family: {{font_family}}, sans-serif;
+    font-size: {{font_size}}pt;
+    color: #333;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.invoice-header {
+    border-bottom: 2px solid {{header_color}};
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.company-info h1 {
+    color: {{header_color}};
+    font-size: 24pt;
+    margin: 0 0 10px 0;
+}
+
+.company-info p {
+    margin: 5px 0;
+    white-space: pre-line;
+}
+
+.invoice-details {
+    text-align: right;
+}
+
+.invoice-details h2 {
+    color: {{header_color}};
+    font-size: 18pt;
+    margin: 0 0 10px 0;
+}
+
+.customer-info {
+    margin-bottom: 30px;
+}
+
+.customer-info h3 {
+    color: {{header_color}};
+    margin: 0 0 10px 0;
+}
+
+.invoice-items table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 30px;
+}
+
+.invoice-items th,
+.invoice-items td {
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+}
+
+.invoice-items th {
+    background-color: {{header_color}};
+    color: white;
+    text-align: left;
+}
+
+.invoice-items .amount {
+    text-align: right;
+}
+
+.payment-info {
+    margin-bottom: 30px;
+    padding: 10px;
+    background-color: #f9f9f9;
+    border-radius: 4px;
+}
+
+.invoice-footer {
+    margin-top: 50px;
+    padding-top: 20px;
+    border-top: 1px solid #ddd;
+    text-align: center;
+    font-size: 9pt;
+    color: #666;
+}
+</style>

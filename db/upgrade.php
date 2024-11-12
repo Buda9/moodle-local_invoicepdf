@@ -24,6 +24,12 @@
 
 defined('MOODLE_INTERNAL') || die();
 
+require_once($CFG->libdir.'/upgradelib.php');
+require_once($CFG->libdir.'/adminlib.php');
+require_once($CFG->dirroot.'/local/invoicepdf/lib.php');
+
+use core\plugin_manager;
+
 /**
  * Upgrade script for the Invoice PDF plugin.
  *
@@ -45,9 +51,44 @@ function xmldb_local_invoicepdf_upgrade(int $oldversion): bool {
     }
 
     if ($oldversion < 2024082104) {
-        // Update the default settings for new features
-        set_config('enabled_gateways', '', 'local_invoicepdf'); // Reset enabled gateways
-        set_config('invoices_per_page', '10', 'local_invoicepdf'); // Set default pagination
+        // Get all available payment gateways
+        $pluginman = plugin_manager::instance();
+        $available_gateways = $pluginman->get_plugins_of_type('paygw');
+        $gateway_names = [];
+        foreach ($available_gateways as $gateway) {
+            $gateway_names[] = $gateway->name;
+        }
+
+        // Enable all available payment gateways if none are currently enabled
+        $current_gateways = get_config('local_invoicepdf', 'enabled_gateways');
+        if (empty($current_gateways) && !empty($gateway_names)) {
+            set_config('enabled_gateways', implode(',', $gateway_names), 'local_invoicepdf');
+        }
+
+        // Set default pagination if not set
+        if (!get_config('local_invoicepdf', 'invoices_per_page')) {
+            set_config('invoices_per_page', '10', 'local_invoicepdf');
+        }
+
+        // Set other default settings if they don't exist
+        $default_settings = [
+            'company_name' => get_string('default_company_name', 'local_invoicepdf'),
+            'company_address' => get_string('default_company_address', 'local_invoicepdf'),
+            'invoice_prefix' => 'INV-',
+            'next_invoice_number' => '1',
+            'date_format' => 'Y-m-d',
+            'show_payment_method' => '1',
+            'invoice_footer' => get_string('default_invoice_footer', 'local_invoicepdf'),
+            'header_color' => '#000000',
+            'font_family' => 'helvetica',
+            'font_size' => '12'
+        ];
+
+        foreach ($default_settings as $name => $value) {
+            if (!get_config('local_invoicepdf', $name)) {
+                set_config($name, $value, 'local_invoicepdf');
+            }
+        }
 
         // Update the savepoint
         upgrade_plugin_savepoint(true, 2024082104, 'local', 'invoicepdf');

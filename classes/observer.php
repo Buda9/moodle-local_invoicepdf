@@ -26,9 +26,13 @@ namespace local_invoicepdf;
 
 defined('MOODLE_INTERNAL') || die();
 
+use core\event\base;
 use core\event\payment_completed;
-use core_payment\helper;
+use core_payment\helper as payment_helper;
+use core\message\message;
+use context_system;
 use moodle_exception;
+use stdClass;
 
 /**
  * Class observer
@@ -36,6 +40,50 @@ use moodle_exception;
  * @package local_invoicepdf
  */
 class observer {
+    /**
+     * Validate plugin settings.
+     *
+     * @return bool True if all required settings are present
+     * @throws \moodle_exception If required settings are missing
+     */
+    private static function validate_settings(): bool {
+        $config = get_config('local_invoicepdf');
+        $required_settings = [
+            'company_name' => 'error:missing_company_name',
+            'company_address' => 'error:missing_company_address',
+            'invoice_template' => 'error:missing_invoice_template',
+            'invoice_prefix' => 'error:missing_invoice_prefix',
+            'enabled_gateways' => 'error:no_gateways_enabled'
+        ];
+
+        foreach ($required_settings as $setting => $error) {
+            if (empty($config->$setting)) {
+                throw new \moodle_exception($error, 'local_invoicepdf');
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Validate PDF content.
+     *
+     * @param string $content The PDF content
+     * @return bool True if content is valid PDF
+     */
+    private static function validate_pdf_content(string $content): bool {
+        // Check if content starts with PDF signature
+        if (substr($content, 0, 4) !== '%PDF') {
+            return false;
+        }
+
+        // Check if content has minimum size
+        if (strlen($content) < 100) {
+            return false;
+        }
+
+        return true;
+    }
 
     /**
      * Handle the payment completed event.
@@ -49,53 +97,51 @@ class observer {
         require_once($CFG->dirroot . '/local/invoicepdf/lib.php');
 
         $paymentid = $event->objectid;
-        debugging("Invoice PDF: Payment completed event triggered for payment ID: $paymentid", DEBUG_DEVELOPER);
+        $transaction = null;
 
         try {
-            // Fetch the payment record using Moodle's payment API
-            $payment = helper::get_payment_by_id($paymentid);
-            if (!$payment) {
-                throw new moodle_exception('paymentnotfound', 'local_invoicepdf', '', $paymentid);
-            }
+            // Validate plugin settings first
+            self::validate_settings();
 
-            debugging("Invoice PDF: Payment details - Gateway: {$payment->get_gateway()}, Amount: {$payment->get_amount()}, Currency: {$payment->get_currency()}", DEBUG_DEVELOPER);
+            // Fetch the payment record using Moodle's payment API
+            $payment = payment_helper::get_payment_by_id($paymentid);
+            if (!$payment) {
+                throw new \moodle_exception('paymentnotfound', 'local_invoicepdf', '', $paymentid);
+            }
 
             // Check if this payment gateway is enabled for invoice generation
             $enabled_gateways = get_config('local_invoicepdf', 'enabled_gateways');
-            debugging("Invoice PDF: Enabled gateways configuration: $enabled_gateways", DEBUG_DEVELOPER);
-
             $enabled_gateways = $enabled_gateways ? explode(',', $enabled_gateways) : [];
-
-            if (empty($enabled_gateways)) {
-                debugging("Invoice PDF: No gateways are enabled for invoice generation", DEBUG_DEVELOPER);
-                return; // Don't generate invoice
-            }
 
             if (!in_array($payment->get_gateway(), $enabled_gateways)) {
                 debugging("Invoice PDF: Gateway not enabled for invoice generation: " . $payment->get_gateway(), DEBUG_DEVELOPER);
                 return; // Don't generate invoice
             }
 
+            // Start transaction
+            $transaction = $DB->start_delegated_transaction();
+
             // Fetch the user record
             $user = $DB->get_record('user', ['id' => $payment->get_userid()]);
             if (!$user) {
-                throw new moodle_exception('usernotfound', 'local_invoicepdf', '', $payment->get_userid());
+                throw new \moodle_exception('usernotfound', 'local_invoicepdf', '', $payment->get_userid());
             }
 
             debugging("Invoice PDF: Processing invoice for user: {$user->id} ({$user->username})", DEBUG_DEVELOPER);
 
-            // Generate the invoice
-            $invoice_generator = new invoice_generator($payment, $user);
+            // Generate invoice number first to ensure uniqueness
             $invoice_number = invoice_number_manager::get_next_invoice_number();
-            debugging("Invoice PDF: Generating PDF with invoice number: $invoice_number", DEBUG_DEVELOPER);
             
+            // Generate the PDF
+            $invoice_generator = new invoice_generator($payment, $user);
             $pdf_content = $invoice_generator->generate_pdf($invoice_number);
-            if (!$pdf_content) {
-                throw new moodle_exception('pdffailed', 'local_invoicepdf', '', $paymentid);
+            
+            // Validate PDF content
+            if (!$pdf_content || !self::validate_pdf_content($pdf_content)) {
+                throw new \moodle_exception('pdffailed', 'local_invoicepdf', '', $paymentid);
             }
 
             // Store the invoice
-            debugging("Invoice PDF: Attempting to store invoice in database", DEBUG_DEVELOPER);
             $invoice_id = invoice_manager::store_invoice(
                 $user->id,
                 $invoice_number,
@@ -105,25 +151,71 @@ class observer {
             );
 
             if (!$invoice_id) {
-                throw new moodle_exception('invoicestorefailed', 'local_invoicepdf', '', $paymentid);
+                throw new \moodle_exception('invoicestorefailed', 'local_invoicepdf', '', $paymentid);
             }
-
-            debugging("Invoice PDF: Successfully stored invoice with ID: $invoice_id", DEBUG_DEVELOPER);
 
             // Send the invoice email
-            debugging("Invoice PDF: Attempting to send invoice email", DEBUG_DEVELOPER);
             $result = $invoice_generator->send_invoice_email($pdf_content, $invoice_number);
             if (!$result) {
-                throw new moodle_exception('emailsendfailed', 'local_invoicepdf', '', $paymentid);
+                // Log warning but don't fail the process
+                debugging("Warning: Failed to send invoice email for payment ID: $paymentid", DEBUG_DEVELOPER);
             }
 
-            debugging("Invoice PDF: Successfully sent invoice email for payment ID: $paymentid", DEBUG_DEVELOPER);
+            // Commit transaction
+            if ($transaction) {
+                $transaction->allow_commit();
+            }
+
             debugging("Invoice PDF: Successfully processed invoice for payment ID: $paymentid", DEBUG_DEVELOPER);
 
-        } catch (moodle_exception $e) {
+            // Trigger invoice generated event
+            $params = [
+                'context' => context_system::instance(),
+                'objectid' => $invoice_id,
+                'relateduserid' => $user->id,
+                'other' => [
+                    'paymentid' => $paymentid,
+                    'invoice_number' => $invoice_number
+                ]
+            ];
+            $event = \local_invoicepdf\event\invoice_generated::create($params);
+            $event->trigger();
+
+        } catch (\moodle_exception $e) {
+            // Rollback transaction if exists
+            if ($transaction) {
+                $transaction->rollback($e);
+            }
+
+            // Log detailed error
             debugging("Invoice PDF Error: " . $e->getMessage(), DEBUG_DEVELOPER);
-            // Log the error to Moodle's error log
-            error_log('Invoice PDF plugin error: ' . $e->getMessage());
+            error_log('Invoice PDF plugin error: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
+
+            // Attempt to notify admin
+            self::notify_admin_of_failure($paymentid, $e->getMessage());
+        }
+    }
+
+    /**
+     * Notify admin of invoice generation failure.
+     *
+     * @param int $paymentid The payment ID
+     * @param string $error The error message
+     * @return void
+     */
+    private static function notify_admin_of_failure(int $paymentid, string $error): void {
+        try {
+            $admin = get_admin();
+            $subject = get_string('invoice_generation_failed_subject', 'local_invoicepdf');
+            $message = get_string('invoice_generation_failed_body', 'local_invoicepdf', [
+                'paymentid' => $paymentid,
+                'error' => $error
+            ]);
+
+            email_to_user($admin, $admin, $subject, $message);
+        } catch (\Exception $e) {
+            // Just log if notification fails
+            error_log('Failed to notify admin of invoice generation failure: ' . $e->getMessage());
         }
     }
 }

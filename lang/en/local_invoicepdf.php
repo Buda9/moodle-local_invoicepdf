@@ -79,11 +79,27 @@ $string['payment_method'] = 'Payment Method';
 $string['course_payment'] = 'Course payment';
 $string['unknown_payment_method'] = 'Unknown payment method';
 $string['invoice_footer'] = 'Thank you for your business!';
+$string['invoice_number'] = 'Invoice number';
 
 // Email strings
 $string['invoice_email_subject'] = 'Your invoice for recent payment';
 $string['invoice_email_body'] = 'Please find attached your invoice for the recent payment.';
 $string['invoice_email_failed'] = 'Failed to send invoice email. Please contact the system administrator.';
+
+// Event strings
+$string['eventinvoicegenerated'] = 'Invoice generated';
+$string['eventinvoicegenerated_desc'] = 'An invoice was generated for a payment';
+
+// Error strings
+$string['error:missing_prefix'] = 'Invoice prefix is not configured';
+$string['error:missing_company_name'] = 'Company name is not configured';
+$string['error:missing_company_address'] = 'Company address is not configured';
+$string['error:missing_invoice_template'] = 'Invoice template is not configured';
+$string['error:no_gateways_enabled'] = 'No payment gateways are enabled for invoice generation';
+$string['error:invoice_number_generation'] = 'Failed to generate invoice number';
+$string['error:invoice_generation_failed'] = 'Failed to generate invoice';
+$string['error:invoice_store_failed'] = 'Failed to store invoice in database';
+$string['error:invoice_email_failed'] = 'Failed to send invoice email';
 
 // Default invoice template
 $string['default_invoice_template'] = '
