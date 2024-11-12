@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Version information for the Invoice PDF local plugin.
+ * External services definition for Invoice PDF plugin.
  *
  * @package    local_invoicepdf
  * @copyright  2024 Davor Budimir <davor@vokabula.com>
@@ -24,8 +24,21 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->component = 'local_invoicepdf';
-$plugin->version = 2024082105;
-$plugin->requires = 2023100900; // Moodle 4.4 and up
-$plugin->maturity = MATURITY_STABLE;
-$plugin->release = 'v1.0';
+$functions = [
+    'local_invoicepdf_get_invoice_data' => [
+        'classname'   => 'local_invoicepdf\external\get_invoice_data',
+        'methodname'  => 'execute',
+        'description' => 'Get invoice data for chart visualization',
+        'type'        => 'read',
+        'ajax'        => true,
+        'capabilities'=> ['local/invoicepdf:viewallinvoices']
+    ]
+];
+
+$services = [
+    'Invoice PDF Services' => [
+        'functions' => ['local_invoicepdf_get_invoice_data'],
+        'restrictedusers' => 0,
+        'enabled' => 1
+    ]
+];

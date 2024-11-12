@@ -100,6 +100,25 @@ $string['error:invoice_number_generation'] = 'Failed to generate invoice number'
 $string['error:invoice_generation_failed'] = 'Failed to generate invoice';
 $string['error:invoice_store_failed'] = 'Failed to store invoice in database';
 $string['error:invoice_email_failed'] = 'Failed to send invoice email';
+$string['error:invalid_number'] = 'Invalid invoice number. Number must be greater than 0.';
+$string['error:reset_failed'] = 'Failed to reset invoice number: {$a}';
+
+// Archive error strings
+$string['error:invalid_archive_months'] = 'Invalid number of months for archiving';
+$string['error:archive_failed'] = 'Failed to archive invoice';
+$string['error:delete_failed'] = 'Failed to delete invoice from main table';
+$string['error:archiving_failed'] = 'Failed to archive invoices: {$a}';
+$string['error:invalid_invoice_id'] = 'Invalid invoice ID';
+$string['error:archive_retrieval_failed'] = 'Failed to retrieve archived invoice: {$a}';
+$string['error:archive_count_failed'] = 'Failed to count archived invoices: {$a}';
+$string['error:invalid_pagination'] = 'Invalid pagination parameters';
+$string['error:archive_list_failed'] = 'Failed to retrieve archived invoices: {$a}';
+$string['error:invalid_cleanup_months'] = 'Invalid number of months for cleanup';
+$string['error:cleanup_failed'] = 'Failed to clean up archived invoices: {$a}';
+
+// Analytics strings
+$string['indicator:invoicesgenerated'] = 'Invoices generated';
+$string['indicator:invoicesgenerated_help'] = 'This indicator shows whether the user has generated any invoices.';
 
 // Default invoice template
 $string['default_invoice_template'] = '

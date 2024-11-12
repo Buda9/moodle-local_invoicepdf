@@ -94,5 +94,41 @@ function xmldb_local_invoicepdf_upgrade(int $oldversion): bool {
         upgrade_plugin_savepoint(true, 2024082104, 'local', 'invoicepdf');
     }
 
+    if ($oldversion < 2024082105) {
+        // Define table local_invoicepdf_archived_invoices
+        $table = new xmldb_table('local_invoicepdf_archived_invoices');
+
+        // Add fields
+        $table->add_field('id', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, XMLDB_SEQUENCE, null);
+        $table->add_field('userid', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('invoice_number', XMLDB_TYPE_CHAR, '255', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('amount', XMLDB_TYPE_NUMBER, '10, 2', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('currency', XMLDB_TYPE_CHAR, '3', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('pdf_content', XMLDB_TYPE_BINARY, null, null, XMLDB_NOTNULL, null, null);
+        $table->add_field('timecreated', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+        $table->add_field('timearchived', XMLDB_TYPE_INTEGER, '10', null, XMLDB_NOTNULL, null, null);
+
+        // Add keys
+        $table->add_key('primary', XMLDB_KEY_PRIMARY, ['id']);
+        $table->add_key('userid', XMLDB_KEY_FOREIGN, ['userid'], 'user', ['id']);
+
+        // Add indexes
+        $table->add_index('invoice_number', XMLDB_INDEX_UNIQUE, ['invoice_number']);
+        $table->add_index('timearchived', XMLDB_INDEX_NOTUNIQUE, ['timearchived']);
+
+        // Create the table
+        if (!$dbman->table_exists($table)) {
+            $dbman->create_table($table);
+        }
+
+        // Set default archive settings if they don't exist
+        if (!get_config('local_invoicepdf', 'archive_months')) {
+            set_config('archive_months', '24', 'local_invoicepdf');
+        }
+
+        // Update the savepoint
+        upgrade_plugin_savepoint(true, 2024082105, 'local', 'invoicepdf');
+    }
+
     return true;
 }

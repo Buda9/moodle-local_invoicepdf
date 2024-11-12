@@ -29,27 +29,18 @@ defined('MOODLE_INTERNAL') || die();
 global $CFG;
 require_once($CFG->libdir . '/tcpdf/tcpdf.php');
 
-use core\message\message;
-use core_payment\helper as payment_helper;
-use core_user;
-use moodle_exception;
-use stdClass;
-use context_system;
-use stored_file;
-use core\output\mustache_template_finder;
-
 /**
  * Invoice generator class.
  */
 class invoice_generator {
-    /** @var stdClass The transaction object. */
-    private stdClass $transaction;
+    /** @var \stdClass The transaction object. */
+    private \stdClass $transaction;
 
-    /** @var stdClass The user object. */
-    private stdClass $user;
+    /** @var \stdClass The user object. */
+    private \stdClass $user;
 
-    /** @var stdClass The plugin configuration. */
-    private stdClass $config;
+    /** @var \stdClass The plugin configuration. */
+    private \stdClass $config;
 
     /** @var string Temporary logo file path */
     private string $temp_logo_path = '';
@@ -74,25 +65,42 @@ class invoice_generator {
     /**
      * Constructor.
      *
-     * @param stdClass $transaction The transaction object.
-     * @param stdClass $user The user object.
+     * @param \stdClass $transaction The transaction object.
+     * @param \stdClass $user The user object.
+     * @throws \moodle_exception If required configuration is missing.
      */
-    public function __construct(stdClass $transaction, stdClass $user) {
+    public function __construct(\stdClass $transaction, \stdClass $user) {
         global $CFG;
         
         $this->transaction = $transaction;
         $this->user = $user;
         $this->config = get_config('local_invoicepdf');
 
+        // Validate required settings
+        $required_settings = [
+            'company_name' => 'error:missing_company_name',
+            'company_address' => 'error:missing_company_address',
+            'invoice_template' => 'error:missing_invoice_template'
+        ];
+
+        foreach ($required_settings as $setting => $error) {
+            if (empty($this->config->$setting)) {
+                throw new \moodle_exception($error, 'local_invoicepdf');
+            }
+        }
+
         // Set defaults if not configured
         if (empty($this->config->font_family)) {
-            $this->config->font_family = 'helvetica';
+            $this->config->font_family = self::FONT_NAME_MAIN;
         }
         if (empty($this->config->font_size)) {
-            $this->config->font_size = '12';
+            $this->config->font_size = (string)self::FONT_SIZE_MAIN;
         }
         if (empty($this->config->header_color)) {
             $this->config->header_color = '#000000';
+        }
+        if (empty($this->config->date_format)) {
+            $this->config->date_format = 'Y-m-d';
         }
     }
 
@@ -105,6 +113,10 @@ class invoice_generator {
      */
     public function generate_pdf(string $invoice_number): string {
         global $CFG;
+
+        if (empty($invoice_number)) {
+            throw new \moodle_exception('error:missing_invoice_number', 'local_invoicepdf');
+        }
 
         try {
             // Create PDF instance
@@ -120,9 +132,9 @@ class invoice_generator {
             // Set document information
             $pdf->SetCreator('Moodle Invoice PDF Generator');
             $pdf->SetAuthor($this->config->company_name);
-            $pdf->SetTitle(get_string('invoice', 'local_invoicepdf') . ' #' . $invoice_number);
-            $pdf->SetSubject(get_string('invoice_for_payment', 'local_invoicepdf'));
-            $pdf->SetKeywords(get_string('invoice_keywords', 'local_invoicepdf'));
+            $pdf->SetTitle(\get_string('invoice', 'local_invoicepdf') . ' #' . $invoice_number);
+            $pdf->SetSubject(\get_string('invoice_for_payment', 'local_invoicepdf'));
+            $pdf->SetKeywords(\get_string('invoice_keywords', 'local_invoicepdf'));
 
             // Set header data
             $logo_path = $this->prepare_logo();
@@ -155,22 +167,27 @@ class invoice_generator {
 
             // Get HTML content
             $html = $this->get_invoice_html($invoice_number);
+            if (empty($html)) {
+                throw new \moodle_exception('error:template_rendering_failed', 'local_invoicepdf');
+            }
 
             // Write HTML
             $pdf->writeHTML($html, true, false, true, false, '');
 
             // Get PDF content
             $content = $pdf->Output('', 'S');
-
-            // Cleanup temporary logo file if exists
-            $this->cleanup_logo();
+            if (empty($content)) {
+                throw new \moodle_exception('error:pdf_generation_failed', 'local_invoicepdf');
+            }
 
             return $content;
 
         } catch (\Exception $e) {
-            debugging('Error generating PDF: ' . $e->getMessage(), DEBUG_DEVELOPER);
+            \debugging('Error generating PDF: ' . $e->getMessage(), DEBUG_DEVELOPER);
+            throw new \moodle_exception('error:invoice_generation_failed', 'local_invoicepdf', '', $e->getMessage());
+        } finally {
+            // Always cleanup temporary files
             $this->cleanup_logo();
-            throw new \moodle_exception('invoicegenerationfailed', 'local_invoicepdf');
         }
     }
 
@@ -183,27 +200,38 @@ class invoice_generator {
     private function get_invoice_html(string $invoice_number): string {
         global $PAGE;
 
-        // Prepare template context
-        $context = [
-            'company_name' => $this->config->company_name,
-            'company_address' => $this->config->company_address,
-            'invoice_number' => $invoice_number,
-            'invoice_date' => date($this->config->date_format),
-            'customer_name' => fullname($this->user),
-            'item_description' => get_string('course_payment', 'local_invoicepdf'),
-            'item_amount' => $this->transaction->amount . ' ' . $this->transaction->currency,
-            'total_amount' => $this->transaction->amount . ' ' . $this->transaction->currency,
-            'show_payment_method' => !empty($this->config->show_payment_method),
-            'payment_method' => $this->get_payment_method(),
-            'invoice_footer' => get_string('invoice_footer', 'local_invoicepdf'),
-            // Style variables
-            'font_family' => $this->config->font_family,
-            'font_size' => $this->config->font_size,
-            'header_color' => $this->config->header_color
-        ];
+        try {
+            // Verify template exists
+            $template_exists = $PAGE->get_renderer('core')->get_template_exists('local_invoicepdf/invoice');
+            if (!$template_exists) {
+                throw new \moodle_exception('error:template_not_found', 'local_invoicepdf');
+            }
 
-        // Render template
-        return $PAGE->get_renderer('core')->render_from_template('local_invoicepdf/invoice', $context);
+            // Prepare template context
+            $context = [
+                'company_name' => $this->config->company_name,
+                'company_address' => $this->config->company_address,
+                'invoice_number' => $invoice_number,
+                'invoice_date' => \userdate(time(), $this->config->date_format),
+                'customer_name' => \fullname($this->user),
+                'item_description' => \get_string('course_payment', 'local_invoicepdf'),
+                'item_amount' => $this->transaction->amount . ' ' . $this->transaction->currency,
+                'total_amount' => $this->transaction->amount . ' ' . $this->transaction->currency,
+                'show_payment_method' => !empty($this->config->show_payment_method),
+                'payment_method' => $this->get_payment_method(),
+                'invoice_footer' => \get_string('invoice_footer', 'local_invoicepdf'),
+                // Style variables
+                'font_family' => $this->config->font_family,
+                'font_size' => $this->config->font_size,
+                'header_color' => $this->config->header_color
+            ];
+
+            // Render template
+            return $PAGE->get_renderer('core')->render_from_template('local_invoicepdf/invoice', $context);
+        } catch (\Exception $e) {
+            \debugging('Error rendering template: ' . $e->getMessage(), DEBUG_DEVELOPER);
+            throw new \moodle_exception('error:template_rendering_failed', 'local_invoicepdf', '', $e->getMessage());
+        }
     }
 
     /**
@@ -212,8 +240,14 @@ class invoice_generator {
      * @return string The payment method display name.
      */
     private function get_payment_method(): string {
-        $gateways = payment_helper::get_payment_gateways();
-        return $gateways[$this->transaction->gateway]->get_display_name() ?? get_string('unknown_payment_method', 'local_invoicepdf');
+        try {
+            $gateways = \core_payment\helper::get_payment_gateways();
+            return $gateways[$this->transaction->gateway]->get_display_name() ?? 
+                   \get_string('unknown_payment_method', 'local_invoicepdf');
+        } catch (\Exception $e) {
+            \debugging('Error getting payment method: ' . $e->getMessage(), DEBUG_DEVELOPER);
+            return \get_string('unknown_payment_method', 'local_invoicepdf');
+        }
     }
 
     /**
@@ -224,22 +258,30 @@ class invoice_generator {
     private function prepare_logo(): ?string {
         global $CFG;
 
-        $fs = get_file_storage();
-        $system_context = context_system::instance();
-        $files = $fs->get_area_files($system_context->id, 'local_invoicepdf', 'logo', 0, 'sortorder', false);
+        try {
+            $fs = \get_file_storage();
+            $system_context = \context_system::instance();
+            $files = $fs->get_area_files($system_context->id, 'local_invoicepdf', 'logo', 0, 'sortorder', false);
 
-        if (!$files) {
+            if (!$files) {
+                return null;
+            }
+
+            $file = reset($files);
+            
+            // Create temporary file
+            $temp_path = $CFG->tempdir . DIRECTORY_SEPARATOR . 'invoicepdf_logo_' . uniqid() . '.' . $file->get_filename();
+            if (!$file->copy_content_to($temp_path)) {
+                \debugging('Failed to copy logo to temporary file', DEBUG_DEVELOPER);
+                return null;
+            }
+            
+            $this->temp_logo_path = $temp_path;
+            return $temp_path;
+        } catch (\Exception $e) {
+            \debugging('Error preparing logo: ' . $e->getMessage(), DEBUG_DEVELOPER);
             return null;
         }
-
-        $file = reset($files);
-        
-        // Create temporary file
-        $temp_path = $CFG->tempdir . DIRECTORY_SEPARATOR . 'invoicepdf_logo_' . uniqid() . '.' . $file->get_filename();
-        $file->copy_content_to($temp_path);
-        
-        $this->temp_logo_path = $temp_path;
-        return $temp_path;
     }
 
     /**
@@ -247,7 +289,11 @@ class invoice_generator {
      */
     private function cleanup_logo(): void {
         if (!empty($this->temp_logo_path) && file_exists($this->temp_logo_path)) {
-            unlink($this->temp_logo_path);
+            try {
+                unlink($this->temp_logo_path);
+            } catch (\Exception $e) {
+                \debugging('Error cleaning up logo: ' . $e->getMessage(), DEBUG_DEVELOPER);
+            }
             $this->temp_logo_path = '';
         }
     }
@@ -260,34 +306,40 @@ class invoice_generator {
      * @return bool True if the email was sent successfully, false otherwise.
      */
     public function send_invoice_email(string $pdf_content, string $invoice_number): bool {
-        global $CFG;
-
-        $subject = get_string('invoice_email_subject', 'local_invoicepdf');
-        $messagetext = get_string('invoice_email_body', 'local_invoicepdf');
-        $filename = "invoice_{$invoice_number}.pdf";
-
-        $from = core_user::get_support_user();
-
-        $message = new message();
-        $message->component = 'local_invoicepdf';
-        $message->name = 'invoice';
-        $message->userfrom = $from;
-        $message->userto = $this->user;
-        $message->subject = $subject;
-        $message->fullmessage = $messagetext;
-        $message->fullmessageformat = FORMAT_PLAIN;
-        $message->fullmessagehtml = '';
-        $message->smallmessage = $subject;
-        $message->notification = 0;
-        $message->contexturl = null;
-        $message->contexturlname = null;
-        $message->attachname = $filename;
-        $message->attachment = $pdf_content;
+        if (empty($pdf_content) || empty($invoice_number)) {
+            \debugging('Missing required parameters for sending email', DEBUG_DEVELOPER);
+            return false;
+        }
 
         try {
-            return message_send($message);
+            $subject = \get_string('invoice_email_subject', 'local_invoicepdf');
+            $messagetext = \get_string('invoice_email_body', 'local_invoicepdf');
+            $filename = "invoice_{$invoice_number}.pdf";
+
+            $from = \core_user::get_support_user();
+            if (!$from) {
+                throw new \moodle_exception('error:no_support_user', 'local_invoicepdf');
+            }
+
+            $message = new \core\message\message();
+            $message->component = 'local_invoicepdf';
+            $message->name = 'invoice';
+            $message->userfrom = $from;
+            $message->userto = $this->user;
+            $message->subject = $subject;
+            $message->fullmessage = $messagetext;
+            $message->fullmessageformat = FORMAT_PLAIN;
+            $message->fullmessagehtml = '';
+            $message->smallmessage = $subject;
+            $message->notification = 0;
+            $message->contexturl = null;
+            $message->contexturlname = null;
+            $message->attachname = $filename;
+            $message->attachment = $pdf_content;
+
+            return \message_send($message);
         } catch (\Exception $e) {
-            debugging('Error sending invoice email: ' . $e->getMessage(), DEBUG_DEVELOPER);
+            \debugging('Error sending invoice email: ' . $e->getMessage(), DEBUG_DEVELOPER);
             return false;
         }
     }
